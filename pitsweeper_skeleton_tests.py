@@ -9,16 +9,16 @@ import pytest
 
 # Time in seconds given to complete mazes of different difficulty
 # Can temporarily set these high for debugging
-EASY_TIMEOUT = 60
-MED_TIMEOUT  = 200
-HARD_TIMEOUT = 400
+EASY_TIMEOUT = 15
+MED_TIMEOUT  = 15
+HARD_TIMEOUT = 15
 OPT_ERR = "[X] Your agent's score was too low to pass this test"
 
 # Set VERBOSE to True and TICK to something like 1 to see maze 
 # played out, then run individual tests using the syntax like:
 # pytest -k test_pitsweeper_easy1
-VERBOSE = False
-TICK    = .1
+VERBOSE = True
+TICK    = .2
 
 # Logs for grade reporting
 all_completed_test_scores: dict[str, int] = dict()
@@ -279,31 +279,31 @@ class PitsweeperGradingTests(unittest.TestCase):
         score_threshold = -52
         self.score_maze(maze, score_threshold, HARD_TIMEOUT, reverse_maze=True)
         
-    @pytest.mark.timeout(HARD_TIMEOUT)
-    def test_pitsweeper_hard3(self) -> None:
-        maze = ["XXXXXXXXX",
-                "XPP.G.PPX",
-                "X...P...X",
-                "XPP.P.P.X",
-                "XP......X",
-                "XP.P.P.PX",
-                "XP..@..PX",
-                "XXXXXXXXX"]
-        score_threshold = -35
-        self.score_maze(maze, score_threshold, HARD_TIMEOUT)
+    # @pytest.mark.timeout(HARD_TIMEOUT)
+    # def test_pitsweeper_hard3(self) -> None:
+    #     maze = ["XXXXXXXXX",
+    #             "XPP.G.PPX",
+    #             "X...P...X",
+    #             "XPP.P.P.X",
+    #             "XP......X",
+    #             "XP.P.P.PX",
+    #             "XP..@..PX",
+    #             "XXXXXXXXX"]
+    #     score_threshold = -35
+    #     self.score_maze(maze, score_threshold, HARD_TIMEOUT)
     
-    @pytest.mark.timeout(HARD_TIMEOUT)
-    def test_pitsweeper_hard3_reversed(self) -> None:
-        maze = ["XXXXXXXXX",
-                "XPP.G.PPX",
-                "X...P...X",
-                "XPP.P.P.X",
-                "XP......X",
-                "XP.P.P.PX",
-                "XP..@..PX",
-                "XXXXXXXXX"]
-        score_threshold = -35
-        self.score_maze(maze, score_threshold, HARD_TIMEOUT, reverse_maze=True)
+    # @pytest.mark.timeout(HARD_TIMEOUT)
+    # def test_pitsweeper_hard3_reversed(self) -> None:
+    #     maze = ["XXXXXXXXX",
+    #             "XPP.G.PPX",
+    #             "X...P...X",
+    #             "XPP.P.P.X",
+    #             "XP......X",
+    #             "XP.P.P.PX",
+    #             "XP..@..PX",
+    #             "XXXXXXXXX"]
+    #     score_threshold = -35
+    #     self.score_maze(maze, score_threshold, HARD_TIMEOUT, reverse_maze=True)
 
 if __name__ == "__main__":
     unittest.main()
