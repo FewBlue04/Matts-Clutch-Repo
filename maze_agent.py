@@ -89,6 +89,13 @@ class MazeAgent:
         self.update_knowledge(perception)
         current_loc = perception["loc"]
 
+        # Track visited safe tiles for fallback logic
+        if not hasattr(self, "last_safe_tiles"):
+            self.last_safe_tiles = []
+        # Only add if not already present as last
+        if current_loc in self.safe_tiles and (not self.last_safe_tiles or current_loc != self.last_safe_tiles[-1]):
+            self.last_safe_tiles.append(current_loc)
+
         # DEBUG: Agent's current knowledge
         print("\n--- AGENT DECISION ---")
         print("Agent Maze:")
@@ -100,7 +107,6 @@ class MazeAgent:
         print(f"Knowledge Base Size: {len(self.kb.clauses)}")
         print(f"Blocked Tiles: {sorted(self.blocked_tiles)}")
 
-        # Helper to get direction from current_loc to next_loc
         def get_direction(from_loc, to_loc):
             dx = to_loc[0] - from_loc[0]
             dy = to_loc[1] - from_loc[1]
@@ -115,27 +121,17 @@ class MazeAgent:
         print(f"Planned A* Path: {path}")
 
         if not path:
-            print("No path found. Considering scan or fallback move.")
-            best_dir = None
-            max_unknowns = 0
-            for dir in Constants.DIRECTIONS:
-                scan_tiles = self.get_scan_locs(current_loc, dir)
-                unknowns = [tile for tile in scan_tiles if tile not in self.safe_tiles and tile not in self.pit_tiles]
-                print(f"Scan {dir}: Unknown tiles to scan: {unknowns}")
-                if len(unknowns) > max_unknowns:
-                    max_unknowns = len(unknowns)
-                    best_dir = dir
-            if best_dir:
-                print(f"Action: Scanning in direction {best_dir} to maximize information gain.")
-                return Move(current_loc, best_dir)
+            print("No path found. Considering fallback move.")
+            self.blocked_tiles.add(current_loc)
+            if current_loc in self.last_safe_tiles:
+                self.last_safe_tiles.remove(current_loc)
+            # Move to the last safe visited tile if available
+            if self.last_safe_tiles:
+                fallback_tile = self.last_safe_tiles[-1]
+                print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
+                return Move(fallback_tile, None)
             else:
-                neighbors = self.get_neighbors(current_loc)
-                print("No scan possible. Checking for safe neighbors.")
-                for neighbor in neighbors:
-                    if neighbor in self.safe_tiles:
-                        print(f"Action: Moving to safe neighbor {neighbor}.")
-                        return Move(neighbor, None)
-                print("Action: No safe moves available. Staying put.")
+                print("Fallback: No last safe visited tile available. Staying put.")
                 return Move(current_loc, None)
 
         for next_loc in path:
@@ -157,26 +153,16 @@ class MazeAgent:
                     continue
                 return Move(current_loc, scan_dir)
 
-        neighbors = self.get_neighbors(current_loc)
-        print("Fallback: Checking for safe neighbors.")
-        for neighbor in neighbors:
-            if neighbor in self.safe_tiles:
-                print(f"Action: Moving to safe neighbor {neighbor}.")
-                return Move(neighbor, None)
-        best_dir = None
-        max_unknowns = 0
-        for dir in Constants.DIRECTIONS:
-            scan_tiles = self.get_scan_locs(current_loc, dir)
-            unknowns = [tile for tile in scan_tiles if tile not in self.safe_tiles and tile not in self.pit_tiles]
-            print(f"Scan {dir}: Unknown tiles to scan: {unknowns}")
-            if len(unknowns) > max_unknowns:
-                max_unknowns = len(unknowns)
-                best_dir = dir
-        if best_dir:
-            print(f"Action: Scanning in direction {best_dir} as last resort.")
-            return Move(current_loc, best_dir)
+        print("No path found. Considering fallback move.")
+        self.blocked_tiles.add(current_loc)
+        if current_loc in self.last_safe_tiles:
+            self.last_safe_tiles.remove(current_loc)
+        if self.last_safe_tiles:
+            fallback_tile = self.last_safe_tiles[-1]
+            print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
+            return Move(fallback_tile, None)
         else:
-            print("Action: No moves or scans possible. Staying put.")
+            print("Fallback: No last safe visited tile available. Staying put.")
             return Move(current_loc, None)
 
     def update_knowledge(self, perception: dict):
@@ -232,6 +218,14 @@ class MazeAgent:
             if tile not in self.safe_tiles and tile not in self.pit_tiles:
                 self.blocked_tiles.add(tile)
                 print(f"Knowledge Update: {tile} remains ambiguous, added to blocked tiles.")
+
+        # Track visited safe tiles for fallback logic
+        if not hasattr(self, "last_safe_tiles"):
+            self.last_safe_tiles = []
+        # Only add if not already present as last
+        current_loc = perception["loc"]
+        if current_loc in self.safe_tiles and (not self.last_safe_tiles or current_loc != self.last_safe_tiles[-1]):
+            self.last_safe_tiles.append(current_loc)
 
 # Declared here to avoid circular dependency
 from environment import Environment
