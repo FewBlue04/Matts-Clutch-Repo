@@ -89,23 +89,16 @@ class MazeAgent:
         self.update_knowledge(perception)
         current_loc = perception["loc"]
 
-        # Track visited safe tiles for fallback logic
-        if not hasattr(self, "last_safe_tiles"):
-            self.last_safe_tiles = []
-        # Only add if not already present as last
-        if current_loc in self.safe_tiles and (not self.last_safe_tiles or current_loc != self.last_safe_tiles[-1]):
-            self.last_safe_tiles.append(current_loc)
-
         # DEBUG: Agent's current knowledge
-        print("\n--- AGENT DECISION ---")
-        print("Agent Maze:")
-        for row in self.maze:
-            print(" ".join(str(cell) for cell in row))
-        print(f"Current Location: {current_loc}")
-        print(f"Known Safe Tiles: {sorted(self.safe_tiles)}")
-        print(f"Known Pit Tiles: {sorted(self.pit_tiles)}")
-        print(f"Knowledge Base Size: {len(self.kb.clauses)}")
-        print(f"Blocked Tiles: {sorted(self.blocked_tiles)}")
+        # print("\n--- AGENT DECISION ---")
+        # print("Agent Maze:")
+        # for row in self.maze:
+        #     print(" ".join(str(cell) for cell in row))
+        # print(f"Current Location: {current_loc}")
+        # print(f"Known Safe Tiles: {sorted(self.safe_tiles)}")
+        # print(f"Known Pit Tiles: {sorted(self.pit_tiles)}")
+        # print(f"Knowledge Base Size: {len(self.kb.clauses)}")
+        # print(f"Blocked Tiles: {sorted(self.blocked_tiles)}")
 
         def get_direction(from_loc, to_loc):
             dx = to_loc[0] - from_loc[0]
@@ -118,52 +111,51 @@ class MazeAgent:
 
         avoid_tiles = self.pit_tiles | self.blocked_tiles
         path = self.a_star_search(current_loc, self.goal, avoid_tiles=avoid_tiles)
-        print(f"Planned A* Path: {path}")
+        # print(f"Planned A* Path: {path}")
 
         if not path:
-            print("No path found. Considering fallback move.")
+            # print("No path found. Considering fallback move.")
             self.blocked_tiles.add(current_loc)
             if current_loc in self.last_safe_tiles:
                 self.last_safe_tiles.remove(current_loc)
             # Move to the last safe visited tile if available
             if self.last_safe_tiles:
                 fallback_tile = self.last_safe_tiles[-1]
-                print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
+                # print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
                 return Move(fallback_tile, None)
             else:
-                print("Fallback: No last safe visited tile available. Staying put.")
+                # print("Fallback: No last safe visited tile available. Staying put.")
                 return Move(current_loc, None)
 
         for next_loc in path:
             if next_loc in self.safe_tiles:
-                print(f"Action: Next tile {next_loc} is safe. Moving there.")
+                # print(f"Action: Next tile {next_loc} is safe. Moving there.")
                 return Move(next_loc, None)
             elif next_loc in self.pit_tiles:
-                print(f"Action: Next tile {next_loc} is a pit. Replanning path without this tile.")
+                # print(f"Action: Next tile {next_loc} is a pit. Replanning path without this tile.")
                 self.pit_tiles.add(next_loc)
                 self.blocked_tiles.discard(next_loc)
                 continue
             else:
                 scan_dir = get_direction(current_loc, next_loc)
                 scan_tiles = self.get_scan_locs(current_loc, scan_dir)
-                print(f"Action: Next tile {next_loc} is unknown. Scanning direction {scan_dir}.")
-                print(f"Tiles to be scanned: {scan_tiles}")
+                # print(f"Action: Next tile {next_loc} is unknown. Scanning direction {scan_dir}.")
+                # print(f"Tiles to be scanned: {scan_tiles}")
                 if not scan_tiles:
-                    print(f"Warning: No valid tiles to scan in direction {scan_dir} from {current_loc}. Skipping scan.")
+                    # print(f"Warning: No valid tiles to scan in direction {scan_dir} from {current_loc}. Skipping scan.")
                     continue
                 return Move(current_loc, scan_dir)
 
-        print("No path found. Considering fallback move.")
+        # print("No path found. Considering fallback move.")
         self.blocked_tiles.add(current_loc)
+        if not hasattr(self, "last_safe_tiles"):
+            self.last_safe_tiles = []
         if current_loc in self.last_safe_tiles:
             self.last_safe_tiles.remove(current_loc)
         if self.last_safe_tiles:
             fallback_tile = self.last_safe_tiles[-1]
-            print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
+            # print(f"Fallback: Moving to last safe visited tile {fallback_tile}.")
             return Move(fallback_tile, None)
-        else:
-            print("Fallback: No last safe visited tile available. Staying put.")
-            return Move(current_loc, None)
 
     def update_knowledge(self, perception: dict):
         loc = perception["loc"]
@@ -184,22 +176,22 @@ class MazeAgent:
             K = len(scanned_tiles)
             N = sensor_num
 
-            print(f"Knowledge Update: Scanned tiles in direction {sensor_dir}: {scanned_tiles}")
-            print(f"Knowledge Update: Scan result (number of pits): {sensor_num}")
+            # print(f"Knowledge Update: Scanned tiles in direction {sensor_dir}: {scanned_tiles}")
+            # print(f"Knowledge Update: Scan result (number of pits): {sensor_num}")
 
             if N == K:
                 for tile in scanned_tiles:
                     self.kb.tell(MazeClause([ (("P", tile), True) ]))
-                    print(f"Knowledge Update: Marked {tile} as pit (all scanned tiles are pits).")
+                    # print(f"Knowledge Update: Marked {tile} as pit (all scanned tiles are pits).")
             elif N == 0:
                 for tile in scanned_tiles:
                     self.kb.tell(MazeClause([ (("P", tile), False) ]))
-                    print(f"Knowledge Update: Marked {tile} as safe (all scanned tiles are safe).")
+                    # print(f"Knowledge Update: Marked {tile} as safe (all scanned tiles are safe).")
             else:
                 self.kb.tell(MazeClause([ (("P", tile), True) for tile in scanned_tiles ]))
                 for combo in itertools.combinations(scanned_tiles, N+1):
                     self.kb.tell(MazeClause([ (("P", tile), False) for tile in combo ]))
-                print(f"Knowledge Update: Ambiguous scan, added constraints for {sensor_num} pits among {scanned_tiles}.")
+                # print(f"Knowledge Update: Ambiguous scan, added constraints for {sensor_num} pits among {scanned_tiles}.")
 
         # 3. For all tiles we've ever seen, update known pits/safes
         all_seen_tiles = set(self.safe_tiles) | set(self.pit_tiles) | set([loc]) | set(scanned_tiles)
@@ -217,15 +209,20 @@ class MazeAgent:
         for tile in scanned_tiles:
             if tile not in self.safe_tiles and tile not in self.pit_tiles:
                 self.blocked_tiles.add(tile)
-                print(f"Knowledge Update: {tile} remains ambiguous, added to blocked tiles.")
+                # print(f"Knowledge Update: {tile} remains ambiguous, added to blocked tiles.")
 
         # Track visited safe tiles for fallback logic
         if not hasattr(self, "last_safe_tiles"):
             self.last_safe_tiles = []
         # Only add if not already present as last
-        current_loc = perception["loc"]
-        if current_loc in self.safe_tiles and (not self.last_safe_tiles or current_loc != self.last_safe_tiles[-1]):
-            self.last_safe_tiles.append(current_loc)
+        if loc in self.safe_tiles and (not self.last_safe_tiles or loc != self.last_safe_tiles[-1]):
+            self.last_safe_tiles.append(loc)
+
+    def get_pit_tiles(self, remaining_time: Optional[float] = None) -> set[tuple[int, int]]:
+        """
+        Returns the set of all tiles that are known to contain a pit.
+        """
+        return self.pit_tiles
 
 # Declared here to avoid circular dependency
 from environment import Environment
